@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Xoay đơn và xoay kép trong cây AVL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#DCE5E8; --panel:#F4F8F9; --ink:#16243A; --muted:#566578; --line:#B7C5CD; --tri:#E4ECF0;
+  --codebg:rgba(22,36,58,.09);
+  --gold:#E0A526; --goldA:rgba(224,165,38,.3);
+  --err:#C8352B; --ok:#1F7A5C;
+  --term:#111C2D; --term-ink:#DCE6EE; --term-dim:#5F7389; --term-cm:#7F97AC; --term-hl:rgba(224,165,38,.22);
+  --font:'Be Vietnam Pro',system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0D1622; --panel:#152234; --ink:#E4ECF2; --muted:#9BABBC; --line:#2B3C53; --tri:#22344B;
+    --codebg:rgba(228,236,242,.1); --err:#FF7B6F; --ok:#5FCFA5; --term:#0A121D;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0D1622; --panel:#152234; --ink:#E4ECF2; --muted:#9BABBC; --line:#2B3C53; --tri:#22344B;
+  --codebg:rgba(228,236,242,.1); --err:#FF7B6F; --ok:#5FCFA5; --term:#0A121D;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}
+[hidden]{display:none!important}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+code{font-family:var(--mono);font-size:.88em;background:var(--codebg);padding:1px 6px;border-radius:4px;white-space:nowrap}
+
+.wrap{max-width:1160px;margin:0 auto;padding:28px 20px 56px}
+header h1{margin:0;font-size:clamp(34px,5.6vw,60px);line-height:1.02;font-weight:800;letter-spacing:-.04em}
+header p{margin:12px 0 0;max-width:64ch;color:var(--muted);font-size:17px}
+
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin:26px 0 10px}
+.tab{border:1.5px solid var(--ink);background:transparent;border-radius:10px;padding:8px 16px;cursor:pointer;text-align:left;line-height:1.3}
+.tab b{display:block;font-weight:800}
+.tab span{font-size:13px;color:var(--muted)}
+.tab[aria-selected="true"]{background:var(--ink);color:var(--bg)}
+.tab[aria-selected="true"] span{color:inherit;opacity:.8}
+
+.views{display:inline-flex;border:1.5px solid var(--ink);border-radius:999px;overflow:hidden;margin:0 0 14px}
+.views button{border:0;background:transparent;padding:6px 18px;font-size:14.5px;font-weight:600;cursor:pointer}
+.views button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+
+.opts{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin:0 0 14px}
+.opts .pre{display:flex;flex-wrap:wrap;gap:8px}
+.opts .pb{border:1.5px solid var(--ink);background:transparent;border-radius:999px;padding:6px 16px;font-size:14.5px;font-weight:600;cursor:pointer}
+.opts .pb[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.opts label{display:inline-flex;align-items:center;gap:8px;font-size:14.5px}
+.opts input[type=text]{width:260px;max-width:100%;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px 10px;font-family:var(--mono);font-size:13.5px}
+.opts .go{border:0;border-radius:999px;background:var(--ink);color:var(--bg);padding:7px 18px;font-weight:600;cursor:pointer}
+.opts .err{color:var(--err);font-size:14px}
+.stage{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.vis{padding:10px 14px;border-right:1px solid var(--line);min-width:0}
+.vis svg{display:block;width:100%;height:auto}
+.legend{margin:4px 6px 6px;font-size:13.5px;color:var(--muted)}
+.side{padding:20px 24px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.side h2{margin:0;font-size:22px;line-height:1.25;font-weight:800;letter-spacing:-.01em}
+.say{margin:0;font-size:16.5px;line-height:1.6;min-height:8.4em}
+.when{margin:0;padding:10px 14px;border-left:4px solid var(--gold);background:var(--codebg);border-radius:0 8px 8px 0;font-size:15px}
+pre.code{margin:0;background:var(--term);color:var(--term-ink);border-radius:8px;padding:12px 0;font-family:var(--mono);font-size:13.5px;line-height:24px;overflow-x:auto}
+pre.code .ln{display:block;padding:0 16px;border-left:3px solid transparent;white-space:pre}
+pre.code .ln.on{background:var(--term-hl);border-left-color:var(--gold)}
+pre.code .cm{color:var(--term-cm)}
+
+.bar{display:flex;align-items:center;flex-wrap:wrap;gap:12px 18px;margin-top:14px}
+.btns{display:flex;gap:8px;align-items:center}
+.ib{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--panel);display:grid;place-items:center;cursor:pointer}
+.ib:hover{border-color:var(--ink)}
+.ib:disabled{opacity:.4;cursor:default}
+.auto{height:44px;border-radius:999px;border:0;background:var(--ink);color:var(--bg);padding:0 22px;font-weight:600;cursor:pointer}
+.dots{display:flex;gap:6px;align-items:center}
+.dots i{width:30px;height:8px;border-radius:4px;background:var(--line);transition:background .3s}
+.dots i.on{background:var(--ink)}
+.dots.many i{width:16px}
+.cnt{font-size:14px;color:var(--muted)}
+
+.pick{margin-top:40px;padding-top:24px;border-top:2px solid var(--ink)}
+.pick h2{margin:0 0 6px;font-size:26px;font-weight:800;letter-spacing:-.02em}
+.pick p{margin:0 0 14px;max-width:70ch}
+.tw{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+table{width:100%;min-width:560px;border-collapse:collapse;font-size:15.5px}
+th,td{text-align:left;padding:10px 16px;border-bottom:1px solid var(--line)}
+thead th{font-weight:800;border-bottom:2px solid var(--ink)}
+tbody tr:last-child td{border-bottom:0}
+tbody tr.on td{background:var(--goldA)}
+
+/* svg */
+svg text{font-family:var(--mono)}
+.te{stroke:var(--ink);stroke-width:2.5;stroke-linecap:round}
+.tr{fill:var(--tri);stroke:var(--ink);stroke-width:2}
+.tn{fill:var(--gold)}
+.tl{font-size:15px;font-weight:600;fill:var(--ink);text-anchor:middle;dominant-baseline:central}
+.th{font-size:13px;fill:var(--muted);text-anchor:middle}
+.nd{fill:var(--panel);stroke:var(--ink);stroke-width:2.5}
+.nt{font-size:18px;font-weight:600;fill:var(--ink);text-anchor:middle;dominant-baseline:central}
+.ring{fill:none;stroke:var(--gold);stroke-width:4}
+.ring.viol{stroke:var(--err)}
+.ring.mv{stroke:var(--ok)}
+.bf{font-size:14px;font-weight:600;fill:var(--muted)}
+.bf.bad{fill:var(--err);font-weight:800}
+
+@media (max-width:860px){
+  .stage{grid-template-columns:1fr}
+  .vis{border-right:0;border-bottom:1px solid var(--line)}
+  .say{min-height:0}
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <h1>Xoay đơn và xoay kép</h1>
+    <p>Bốn trường hợp mất cân bằng của cây AVL, minh họa bằng hoạt hình. Chọn một trường hợp, rồi bấm Bước sau (hoặc phím →) để xem các nút di chuyển. Mục "Cây dài hơn" cho thấy xoay xảy ra ở nút sâu trong một cây lớn.</p>
+  </header>
+
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Chọn trường hợp">
+    <button class="tab" role="tab" data-k="LL" aria-selected="true"><b>LL</b><span>xoay phải (đơn)</span></button>
+    <button class="tab" role="tab" data-k="RR" aria-selected="false"><b>RR</b><span>xoay trái (đơn)</span></button>
+    <button class="tab" role="tab" data-k="LR" aria-selected="false"><b>LR</b><span>xoay kép</span></button>
+    <button class="tab" role="tab" data-k="RL" aria-selected="false"><b>RL</b><span>xoay kép</span></button>
+  </nav>
+
+  <div class="views" role="group" aria-label="Kiểu minh họa">
+    <button type="button" data-v="gen" aria-pressed="true">Tổng quát (cây con T1…T4)</button>
+    <button type="button" data-v="num" aria-pressed="false">Ví dụ bằng số</button>
+    <button type="button" data-v="long" aria-pressed="false">Cây dài hơn (có nút cha)</button>
+  </div>
+
+  <div class="opts" id="opts" hidden></div>
+
+  <section class="stage" aria-live="polite">
+    <div class="vis"><div id="vis"></div><p class="legend" id="legend"></p></div>
+    <div class="side">
+      <h2 id="ftitle"></h2>
+      <p class="say" id="say"></p>
+      <p class="when" id="when"></p>
+      <pre class="code" id="code" aria-label="Mã giả của phép xoay"></pre>
+    </div>
+  </section>
+
+  <div class="bar">
+    <div class="btns">
+      <button class="ib" id="bFirst" type="button" aria-label="Về đầu" title="Về đầu"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 5V2L7 6l5 4V7a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z" fill="currentColor"/></svg></button>
+      <button class="ib" id="bPrev" type="button" aria-label="Bước trước" title="Bước trước (←)"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M6 5h2v14H6zM20 5v14L9 12z" fill="currentColor"/></svg></button>
+      <button class="auto" id="bAuto" type="button">Tự chạy</button>
+      <button class="ib" id="bNext" type="button" aria-label="Bước sau" title="Bước sau (→)"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M16 5h2v14h-2zM4 5v14l11-7z" fill="currentColor"/></svg></button>
+    </div>
+    <div class="dots" id="dots"></div>
+    <div class="cnt" id="cnt"></div>
+  </div>
+
+  <section class="pick" aria-labelledby="pick-h">
+    <h2 id="pick-h">Chọn nhanh trường hợp nào</h2>
+    <p>Hệ số cân bằng = chiều cao cây con phải − chiều cao cây con trái. Nhìn dấu của nút vi phạm <code>z</code> và dấu của nút con nằm trên đường đi tới nút mới. Cùng dấu thì xoay đơn, ngược dấu thì xoay kép.</p>
+    <div class="tw">
+      <table>
+        <thead><tr><th>Hệ số của z</th><th>Hệ số của nút con</th><th>Trường hợp</th><th>Xử lý</th></tr></thead>
+        <tbody id="ptb">
+          <tr data-k="LL"><td>−2</td><td>−1</td><td>LL</td><td>xoay phải tại z</td></tr>
+          <tr data-k="RR"><td>+2</td><td>+1</td><td>RR</td><td>xoay trái tại z</td></tr>
+          <tr data-k="LR"><td>−2</td><td>+1</td><td>LR</td><td>xoay trái tại con, rồi xoay phải tại z</td></tr>
+          <tr data-k="RL"><td>+2</td><td>−1</td><td>RL</td><td>xoay phải tại con, rồi xoay trái tại z</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script>
+(()=>{
+const $=id=>document.getElementById(id);
+const MINUS='−';
+const fmt=n=>n>0?'+'+n:n<0?MINUS+Math.abs(n):'0';
+const TW=36,TALL=70,SHORT=50;
+
+const N=(id,x,y,bf=null,ring='')=>({id,x,y,bf,ring});
+const T=(id,x,y,tall,mark=false)=>({id,x,y,tall,mark});
+
+/* ---------- dữ liệu gốc: LL và LR (RR, RL được lấy đối xứng) ---------- */
+const GEN_LL=[
+  {nodes:[N('z',330,40,-2,'viol'),N('y',215,120,-1),N('x',120,200,-1)],
+   tris:[T('T4',455,115,true),T('T3',310,195,false),T('T1',75,275,true,true),T('T2',165,275,false)],
+   edges:[['z','y'],['z','T4'],['y','x'],['y','T3'],['x','T1'],['x','T2']],hl:[]},
+  {nodes:[N('y',330,40,0,'mv'),N('x',215,120,-1),N('z',445,120,1,'mv')],
+   tris:[T('T1',170,195,true,true),T('T2',260,195,false),T('T3',400,195,false),T('T4',490,195,true)],
+   edges:[['y','x'],['y','z'],['x','T1'],['x','T2'],['z','T3'],['z','T4']],hl:[1,2,3,4]}
+];
+const GEN_LR=[
+  {nodes:[N('z',330,40,-2,'viol'),N('y',215,120,1),N('x',310,200,-1)],
+   tris:[T('T4',455,115,true),T('T1',120,195,true),T('T2',265,275,true,true),T('T3',355,275,false)],
+   edges:[['z','y'],['z','T4'],['y','T1'],['y','x'],['x','T2'],['x','T3']],hl:[]},
+  {nodes:[N('z',330,40,null),N('x',215,120,null,'mv'),N('y',130,200,null,'mv')],
+   tris:[T('T4',455,115,true),T('T3',310,195,false),T('T1',85,275,true),T('T2',175,275,true,true)],
+   edges:[['z','x'],['z','T4'],['x','y'],['x','T3'],['y','T1'],['y','T2']],hl:[1]},
+  {nodes:[N('x',330,40,0,'mv'),N('y',215,120,0),N('z',445,120,1,'mv')],
+   tris:[T('T1',170,195,true),T('T2',260,195,true,true),T('T3',400,195,false),T('T4',490,195,true)],
+   edges:[['x','y'],['x','z'],['y','T1'],['y','T2'],['z','T3'],['z','T4']],hl:[2]}
+];
+const NUM_LL=[
+  {nodes:[N('3',330,50,-2,'viol'),N('2',240,140,-1),N('1',150,230,0,'new')],tris:[],
+   edges:[['3','2'],['2','1']],hl:[]},
+  {nodes:[N('2',330,50,0,'mv'),N('1',240,140,0),N('3',420,140,0,'mv')],tris:[],
+   edges:[['2','1'],['2','3']],hl:[1,2,3,4]}
+];
+const NUM_LR=[
+  {nodes:[N('3',330,50,-2,'viol'),N('1',240,140,1),N('2',330,230,0,'new')],tris:[],
+   edges:[['3','1'],['1','2']],hl:[]},
+  {nodes:[N('3',330,50,null),N('2',240,140,null,'mv'),N('1',150,230,null,'mv')],tris:[],
+   edges:[['3','2'],['2','1']],hl:[1]},
+  {nodes:[N('2',330,50,0,'mv'),N('1',240,140,0),N('3',420,140,0,'mv')],tris:[],
+   edges:[['2','1'],['2','3']],hl:[2]}
+];
+const mapId=id=>/^T\d$/.test(id)?'T'+(5-(+id[1])):/^\d$/.test(id)?String(4-(+id)):id;
+const mirror=fr=>fr.map(f=>({...f,
+  nodes:f.nodes.map(n=>({...n,id:mapId(n.id),x:660-n.x,bf:n.bf==null?null:-n.bf})),
+  tris:f.tris.map(t=>({...t,id:mapId(t.id),x:660-t.x})),
+  edges:f.edges.map(([a,b])=>[mapId(a),mapId(b)])}));
+const withText=(fr,titles,texts)=>fr.map((f,i)=>({...f,title:titles[i],text:texts[i]}));
+
+const TIT={
+  LL:['Trước khi xoay: lệch trái – trái','Sau khi xoay phải tại z'],
+  RR:['Trước khi xoay: lệch phải – phải','Sau khi xoay trái tại z'],
+  LR:['Trước khi xoay: lệch trái – phải','Sau phép xoay 1: xoay trái tại y','Sau phép xoay 2: xoay phải tại z'],
+  RL:['Trước khi xoay: lệch phải – trái','Sau phép xoay 1: xoay phải tại y','Sau phép xoay 2: xoay trái tại z']
+};
+const TXT_GEN={
+  LL:['Nút mới được thêm vào cây con T1, nằm ở cây con trái của nút con trái. Nút z có hệ số −2 (vòng đỏ) nên vi phạm. Nút con y có hệ số −1, cùng chiều với z, nên chỉ cần một phép xoay đơn.',
+      'Xoay phải tại z: y đi lên làm gốc, z trở thành con phải của y. Cây con T3, vốn là con phải của y, chuyển sang làm con trái của z. Chiều cao nhánh trở về như trước khi thêm, mọi hệ số về {−1, 0, +1}.'],
+  RR:['Nút mới được thêm vào cây con T4, nằm ở cây con phải của nút con phải. Nút z có hệ số +2 (vòng đỏ). Nút con y có hệ số +1, cùng chiều với z, nên chỉ cần một phép xoay đơn.',
+      'Xoay trái tại z: y đi lên làm gốc, z trở thành con trái của y. Cây con T2, vốn là con trái của y, chuyển sang làm con phải của z. Mọi hệ số về {−1, 0, +1}.'],
+  LR:['Nút mới được thêm vào cây con T2, nằm ở cây con phải của nút con trái. Nút z có hệ số −2, nhưng nút con y có hệ số +1: hai dấu ngược chiều, xoay đơn không đủ. Phải xoay kép, gồm hai phép xoay.',
+      'Phép xoay thứ nhất: xoay trái tại nút con y. Nút cháu x đi lên, y trở thành con trái của x. Cây giờ có dạng LL (lệch về cùng một phía). Lúc này x chưa cân bằng, đó là bình thường.',
+      'Phép xoay thứ hai: xoay phải tại z, giống trường hợp LL. x đi lên làm gốc của nhánh, y và z là hai con của x. Ba nút x, y, z đã cân bằng.'],
+  RL:['Nút mới được thêm vào cây con T3, nằm ở cây con trái của nút con phải. Nút z có hệ số +2, nhưng nút con y có hệ số −1: hai dấu ngược chiều, phải xoay kép.',
+      'Phép xoay thứ nhất: xoay phải tại nút con y. Nút cháu x đi lên, y trở thành con phải của x. Cây giờ có dạng RR. Lúc này x chưa cân bằng, đó là bình thường.',
+      'Phép xoay thứ hai: xoay trái tại z, giống trường hợp RR. x đi lên làm gốc của nhánh, z và y là hai con của x. Ba nút x, y, z đã cân bằng.']
+};
+const TXT_NUM={
+  LL:['Thêm 3, 2, 1 theo thứ tự. Nút 3 có hệ số −2 (vòng đỏ), nút con 2 có hệ số −1: cùng chiều nên xoay đơn.',
+      'Xoay phải tại 3: nút 2 đi lên làm gốc, 3 trở thành con phải của 2. Cây 2(1, 3) cân bằng.'],
+  RR:['Thêm 1, 2, 3 theo thứ tự. Nút 1 có hệ số +2 (vòng đỏ), nút con 2 có hệ số +1: cùng chiều nên xoay đơn.',
+      'Xoay trái tại 1: nút 2 đi lên làm gốc, 1 trở thành con trái của 2. Cây 2(1, 3) cân bằng.'],
+  LR:['Thêm 3, 1, 2 theo thứ tự. Nút 3 có hệ số −2, nhưng nút con 1 có hệ số +1: ngược chiều. Nếu xoay phải tại 3 thì nút 2 chỉ đổi nhánh và cây vẫn lệch, nên phải xoay kép.',
+      'Phép 1: xoay trái tại nút con 1. Nút 2 đi lên, cây thành dạng thẳng 3 – 2 – 1 (dạng LL).',
+      'Phép 2: xoay phải tại 3. Nút 2 trở thành gốc, với hai con là 1 và 3.'],
+  RL:['Thêm 1, 3, 2 theo thứ tự. Nút 1 có hệ số +2, nhưng nút con 3 có hệ số −1: ngược chiều, phải xoay kép.',
+      'Phép 1: xoay phải tại nút con 3. Nút 2 đi lên, cây thành dạng thẳng 1 – 2 – 3 (dạng RR).',
+      'Phép 2: xoay trái tại 1. Nút 2 trở thành gốc, với hai con là 1 và 3.']
+};
+const DATA={gen:{},num:{}};
+DATA.gen.LL=withText(GEN_LL,TIT.LL,TXT_GEN.LL);
+DATA.gen.RR=withText(mirror(GEN_LL),TIT.RR,TXT_GEN.RR);
+DATA.gen.LR=withText(GEN_LR,TIT.LR,TXT_GEN.LR);
+DATA.gen.RL=withText(mirror(GEN_LR),TIT.RL,TXT_GEN.RL);
+DATA.num.LL=withText(NUM_LL,TIT.LL,TXT_NUM.LL);
+DATA.num.RR=withText(mirror(NUM_LL),TIT.RR,TXT_NUM.RR);
+DATA.num.LR=withText(NUM_LR,TIT.LR,TXT_NUM.LR);
+DATA.num.RL=withText(mirror(NUM_LR),TIT.RL,TXT_NUM.RL);
+
+const WHEN={
+  LL:'Dùng khi nút mới nằm ở cây con trái của con trái. Dấu của z và y đều là âm.',
+  RR:'Dùng khi nút mới nằm ở cây con phải của con phải. Dấu của z và y đều là dương.',
+  LR:'Dùng khi nút mới nằm ở cây con phải của con trái. z âm, y dương. Xoay kép = hai phép xoay đơn liên tiếp.',
+  RL:'Dùng khi nút mới nằm ở cây con trái của con phải. z dương, y âm. Xoay kép = hai phép xoay đơn liên tiếp.'
+};
+const CODE={
+  LL:['def rotate_right(z):','    y = z.left','    z.left = y.right     # T3 sang làm con trái của z','    y.right = z','    return y             # y là gốc mới'],
+  RR:['def rotate_left(z):','    y = z.right','    z.right = y.left     # T2 sang làm con phải của z','    y.left = z','    return y             # y là gốc mới'],
+  LR:['def rotate_left_right(z):','    z.left = rotate_left(z.left)   # phép 1: xoay trái tại y','    return rotate_right(z)         # phép 2: xoay phải tại z'],
+  RL:['def rotate_right_left(z):','    z.right = rotate_right(z.right)  # phép 1: xoay phải tại y','    return rotate_left(z)            # phép 2: xoay trái tại z']
+};
+
+/* ---------- vẽ ---------- */
+const S={k:'LL',v:'gen',i:0,cur:{},raf:0,timer:null,lp:'LL',customSeq:[10,20,30,40,50,25]};
+const frames=()=>S.v==='long'?longFrames():DATA[S.v][S.k];
+/* ---------- cây dài: động cơ AVL thật ---------- */
+const CASEDESC={LL:'xoay phải tại z',RR:'xoay trái tại z',LR:'xoay trái tại y, rồi xoay phải tại z',RL:'xoay phải tại y, rồi xoay trái tại z'};
+const Hh=n=>n?1+Math.max(Hh(n.l),Hh(n.r)):0;
+const cnt=n=>n?1+cnt(n.l)+cnt(n.r):0;
+const clone=n=>n?{k:n.k,l:clone(n.l),r:clone(n.r)}:null;
+const rotR=n=>{const y=n.l;n.l=y.r;y.r=n;return y;};
+const rotL=n=>{const y=n.r;n.r=y.l;y.l=n;return y;};
+function insertAVL(root,k){
+  const st=[],path=[];
+  const mk=(flags,cs,hl,title,text,extra)=>st.push({tree:clone(root),flags,cs,hl,title,text,...(extra||{})});
+  if(!root){root={k,l:null,r:null};mk({nw:k},'',[],`Thêm ${k}`,`Cây đang rỗng, ${k} trở thành gốc.`);return {root,st};}
+  let c=root;
+  for(;;){path.push(c);
+    if(k<c.k){if(!c.l){c.l={k,l:null,r:null};path.push(c.l);break;}c=c.l;}
+    else{if(!c.r){c.r={k,l:null,r:null};path.push(c.r);break;}c=c.r;}}
+  let vi=-1;
+  for(let j=path.length-1;j>=0;j--){const n=path[j];if(Math.abs(Hh(n.r)-Hh(n.l))>1){vi=j;break;}}
+  if(vi<0){mk({nw:k},'',[],`Thêm ${k}`,`Thêm ${k} theo luật cây tìm kiếm nhị phân. Hệ số cân bằng của mọi nút đều thuộc {−1, 0, +1}, cây vẫn là AVL nên không cần xoay.`);return {root,st};}
+  const z=path[vi],bf=Hh(z.r)-Hh(z.l),parent=path[vi-1];
+  let cs,y;
+  if(bf<0){y=z.l;cs=(Hh(y.r)-Hh(y.l))<=0?'LL':'LR';}else{y=z.r;cs=(Hh(y.r)-Hh(y.l))>=0?'RR':'RL';}
+  const ybf=Hh(y.r)-Hh(y.l);
+  mk({nw:k,viol:z.k},cs,[],`Thêm ${k}: nút ${z.k} mất cân bằng`,
+    `Thêm ${k}. Đi ngược từ ${k} lên gốc, nút đầu tiên vi phạm là z = ${z.k} (hệ số ${fmt(bf)}), ${parent?`nằm dưới nút cha ${parent.k}`:'chính là gốc cây'}. Nút con y = ${y.k} có hệ số ${fmt(ybf)}, ${(bf<0)===(ybf<0)?'cùng':'ngược'} dấu với z. Đây là trường hợp ${cs}, cách xử lý: ${CASEDESC[cs]}.`);
+  const att=top=>parent?` Nút cha ${parent.k} giờ trỏ tới ${top} thay cho ${z.k}, phần cây phía trên không phải thay đổi.`:` Vì z là gốc nên ${top} trở thành gốc mới của cả cây.`;
+  const attach=sub=>{if(parent){if(parent.l===z)parent.l=sub;else parent.r=sub;}else root=sub;};
+  if(cs==='LL'){const mv=y.r;attach(rotR(z));
+    mk({moved:[z.k,y.k]},cs,[1,2,3,4],`Xoay phải tại ${z.k}`,`Xoay phải tại z = ${z.k}: y = ${y.k} đi lên làm gốc của nhánh, ${z.k} trở thành con phải của ${y.k}.${mv?` Cây con gốc ${mv.k}, vốn là con phải của ${y.k}, chuyển sang làm con trái của ${z.k}.`:''}${att(y.k)}`);}
+  else if(cs==='RR'){const mv=y.l;attach(rotL(z));
+    mk({moved:[z.k,y.k]},cs,[1,2,3,4],`Xoay trái tại ${z.k}`,`Xoay trái tại z = ${z.k}: y = ${y.k} đi lên làm gốc của nhánh, ${z.k} trở thành con trái của ${y.k}.${mv?` Cây con gốc ${mv.k}, vốn là con trái của ${y.k}, chuyển sang làm con phải của ${z.k}.`:''}${att(y.k)}`);}
+  else if(cs==='LR'){const x=y.r;z.l=rotL(y);
+    mk({moved:[y.k,x.k]},cs,[1],`Phép 1: xoay trái tại ${y.k}`,`Phép 1: xoay trái tại nút con y = ${y.k}. Nút cháu x = ${x.k} đi lên, ${y.k} trở thành con trái của ${x.k}. Cây giờ có dạng LL. Lúc này x chưa cân bằng, đó là bình thường.`,{hideBf:true});
+    attach(rotR(z));
+    mk({moved:[z.k,x.k]},cs,[2],`Phép 2: xoay phải tại ${z.k}`,`Phép 2: xoay phải tại z = ${z.k}. x = ${x.k} trở thành gốc của nhánh, với hai con là ${y.k} và ${z.k}.${att(x.k)}`);}
+  else{const x=y.l;z.r=rotR(y);
+    mk({moved:[y.k,x.k]},cs,[1],`Phép 1: xoay phải tại ${y.k}`,`Phép 1: xoay phải tại nút con y = ${y.k}. Nút cháu x = ${x.k} đi lên, ${y.k} trở thành con phải của ${x.k}. Cây giờ có dạng RR. Lúc này x chưa cân bằng, đó là bình thường.`,{hideBf:true});
+    attach(rotL(z));
+    mk({moved:[z.k,x.k]},cs,[2],`Phép 2: xoay trái tại ${z.k}`,`Phép 2: xoay trái tại z = ${z.k}. x = ${x.k} trở thành gốc của nhánh, với hai con là ${z.k} và ${y.k}.${att(x.k)}`);}
+  return {root,st};
+}
+function layoutLong(t,dim){
+  const list=[],edges=[];let idx=0;
+  (function walk(n,d,p){if(!n)return;walk(n.l,d+1,n);list.push({k:n.k,d,i:idx++});if(p)edges.push([String(p.k),String(n.k)]);walk(n.r,d+1,n);})(t,0,null);
+  const pos={};list.forEach(o=>{pos[o.k]={x:dim.W/2+(o.i-(list.length-1)/2)*dim.dx,y:40+o.d*dim.dy};});
+  return {list,pos,edges};
+}
+function bfMapLong(t){const m={};(function h(n){if(!n)return 0;const a=h(n.l),b=h(n.r);m[n.k]=b-a;return 1+Math.max(a,b);})(t);return m;}
+function buildLong(base,seq){
+  let root=null;
+  base.forEach(k=>{root=insertAVL(root,k).root;});
+  const raws=[];
+  if(base.length)raws.push({tree:clone(root),flags:{},cs:'',hl:[],title:'Cây AVL ban đầu',
+    text:`Cây AVL gồm ${cnt(root)} nút, chiều cao ${Hh(root)}, mọi hệ số cân bằng đều hợp lệ. Sắp thêm ${seq.join(', ')}. Hãy thử đoán nút nào sẽ mất cân bằng, rồi bấm Bước sau.`});
+  else raws.push({tree:null,flags:{},cs:'',hl:[],title:'Cây AVL rỗng',text:`Bắt đầu với cây rỗng. Sẽ lần lượt thêm: ${seq.join(', ')}. Sau mỗi lần thêm, nếu có nút bị lệch quá 1 thì cây tự xoay để cân bằng lại.`});
+  seq.forEach(k=>{const o=insertAVL(root,k);root=o.root;o.st.forEach(r=>raws.push(r));});
+  raws.push({tree:clone(root),flags:{},cs:'',hl:[],title:'Kết quả',text:`Hoàn tất. Cây AVL cuối cùng có ${cnt(root)} nút và chiều cao ${Hh(root)}. Mọi hệ số cân bằng đều thuộc {−1, 0, +1}.`});
+  let maxN=1,maxD=1;raws.forEach(r=>{maxN=Math.max(maxN,cnt(r.tree));maxD=Math.max(maxD,Hh(r.tree));});
+  const dim={dx:50,dy:66,W:Math.max(660,(maxN-1)*50+110),H:(maxD-1)*66+105};
+  return raws.map(r=>{
+    const {list,pos,edges}=layoutLong(r.tree,dim),bf=bfMapLong(r.tree);
+    const nodes=list.map(o=>{
+      const f=r.flags||{};let ring='';
+      if(f.viol===o.k)ring='viol';else if(f.moved&&f.moved.includes(o.k))ring='mv';else if(f.nw===o.k)ring='new';
+      return N(String(o.k),pos[o.k].x,pos[o.k].y,r.hideBf?null:bf[o.k],ring);
+    });
+    return {nodes,tris:[],edges,hl:r.hl,title:r.title,text:r.text,cs:r.cs,W:dim.W,H:dim.H};
+  });
+}
+const PRE=[
+  {id:'LL',name:'LL ở nút sâu',base:[50,30,70,20,40,60,80,10],seq:[5]},
+  {id:'LR',name:'LR ở nút sâu',base:[50,30,70,20,40,60,80,10],seq:[15]},
+  {id:'RR',name:'RR ở nút sâu',base:[50,30,70,20,40,60,80,90],seq:[95]},
+  {id:'RL',name:'RL ở nút sâu',base:[50,30,70,20,40,60,80,90],seq:[85]},
+  {id:'MIX',name:'Dãy dài, đủ 4 trường hợp',base:[],seq:[50,45,25,80,65,3,15,40,30,85,35]}
+];
+const LCACHE={};
+function longFrames(){
+  let key,base,seq;
+  if(S.lp==='custom'){base=[];seq=S.customSeq;key='c:'+seq.join(',');}
+  else{const p=PRE.find(x=>x.id===S.lp);base=p.base;seq=p.seq;key='p:'+p.id;}
+  if(!LCACHE[key])LCACHE[key]=buildLong(base,seq);
+  return LCACHE[key];
+}
+function renderOpts(){
+  const o=$('opts');
+  o.innerHTML=`<div class="pre">${PRE.map(p=>`<button type="button" class="pb" data-p="${p.id}" aria-pressed="${S.lp===p.id}">${p.name}</button>`).join('')}</div>`
+    +`<label>Dãy tự nhập <input type="text" id="seqIn" value="${S.customSeq.join(', ')}" aria-label="Dãy số cách nhau bởi dấu phẩy"></label><button type="button" class="go" id="seqGo">Dựng cây</button><span class="err" id="seqErr"></span>`;
+  o.querySelectorAll('.pb').forEach(b=>b.addEventListener('click',()=>{S.lp=b.dataset.p;S.i=0;stopAuto();renderOpts();show(false);}));
+  const apply=()=>{
+    const nums=[...new Set(($('seqIn').value.match(/\d{1,3}/g)||[]).map(Number))];
+    if(nums.length<1||nums.length>14){$('seqErr').textContent='Nhập từ 1 đến 14 số khác nhau, cách nhau bởi dấu phẩy.';return;}
+    S.customSeq=nums;S.lp='custom';S.i=0;stopAuto();renderOpts();show(false);
+  };
+  $('seqGo').addEventListener('click',apply);
+  $('seqIn').addEventListener('keydown',e=>{if(e.key==='Enter')apply();});
+}
+
+function paint(f,cur){
+  const VW=f.W||660,VH=f.H||(S.v==='gen'?385:300);
+  let s=`<svg viewBox="0 0 ${VW} ${VH}" role="img" aria-label="Cây trước và sau khi xoay">`;
+  f.edges.forEach(([a,b])=>{const A=cur[a],B=cur[b];s+=`<line class="te" x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}"/>`;});
+  f.tris.forEach(t=>{
+    const p=cur[t.id],h=t.tall?TALL:SHORT;
+    s+=`<polygon class="tr" points="${p.x},${p.y} ${p.x-TW},${p.y+h} ${p.x+TW},${p.y+h}"/>`;
+    if(t.mark){const fr=(h-18)/h;s+=`<polygon class="tn" points="${p.x-TW*fr},${p.y+h-18} ${p.x+TW*fr},${p.y+h-18} ${p.x+TW},${p.y+h} ${p.x-TW},${p.y+h}"/><polygon class="tr" style="fill:none" points="${p.x},${p.y} ${p.x-TW},${p.y+h} ${p.x+TW},${p.y+h}"/>`;}
+    s+=`<text class="tl" x="${p.x}" y="${p.y+h*0.58}">${t.id}</text><text class="th" x="${p.x}" y="${p.y+h+17}">${t.tall?'h+1':'h'}</text>`;
+  });
+  f.nodes.forEach(n=>{
+    const p=cur[n.id];
+    if(n.ring)s+=`<circle class="ring ${n.ring==='viol'?'viol':n.ring==='mv'?'mv':''}" cx="${p.x}" cy="${p.y}" r="29"/>`;
+    s+=`<circle class="nd" cx="${p.x}" cy="${p.y}" r="22"/><text class="nt" x="${p.x}" y="${p.y}">${n.id}</text>`;
+    if(n.bf!=null)s+=`<text class="bf ${Math.abs(n.bf)>1?'bad':''}" x="${p.x+27}" y="${p.y-22}">${fmt(n.bf)}</text>`;
+  });
+  $('vis').innerHTML=s+'</svg>';
+}
+function show(animate){
+  const f=frames()[S.i],target={};
+  f.nodes.forEach(n=>target[n.id]={x:n.x,y:n.y});
+  f.tris.forEach(t=>target[t.id]={x:t.x,y:t.y});
+  const from=animate?{...S.cur}:{};
+  cancelAnimationFrame(S.raf);
+  const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const t0=performance.now(),dur=(animate&&!reduce)?700:0;
+  const step=now=>{
+    const p=dur?Math.min(1,(now-t0)/dur):1,e=p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2,cur={};
+    for(const id in target){const a=from[id]||target[id];cur[id]={x:a.x+(target[id].x-a.x)*e,y:a.y+(target[id].y-a.y)*e};}
+    S.cur=cur;paint(f,cur);
+    if(p<1)S.raf=requestAnimationFrame(step);
+  };
+  S.raf=requestAnimationFrame(step);
+  side(f);
+}
+function side(f){
+  const n=frames().length,cs=S.v==='long'?(f.cs||''):S.k;
+  $('ftitle').textContent=f.title;
+  $('say').textContent=f.text;
+  $('when').textContent=cs?WHEN[cs]:'';
+  $('when').style.display=cs?'':'none';
+  const cl=cs?CODE[cs]:null;
+  $('code').style.display=cl?'':'none';
+  if(cl)$('code').innerHTML=cl.map((l,j)=>{
+    const m=l.match(/^(.*?)(#.*)$/),body=(m?m[1]:l).replace(/&/g,'&amp;').replace(/</g,'&lt;'),cm=m?`<span class="cm">${m[2]}</span>`:'';
+    return `<span class="ln ${f.hl.includes(j)?'on':''}">${body}${cm}</span>`;
+  }).join('');
+  $('legend').textContent=S.v==='gen'
+    ?'Số nhỏ cạnh mỗi nút là hệ số cân bằng. Vòng đỏ: nút vi phạm. Vòng xanh: nút vừa được xoay. Vùng vàng trong tam giác: nơi vừa thêm nút mới. h là chiều cao của cây con.'
+    :S.v==='long'
+    ?'Số nhỏ cạnh mỗi nút là hệ số cân bằng. Vòng đỏ: nút z vi phạm. Vòng vàng: nút vừa thêm. Vòng xanh: các nút vừa được xoay. Nút cha của z chỉ phải đổi con trỏ.'
+    :'Số nhỏ cạnh mỗi nút là hệ số cân bằng. Vòng đỏ: nút vi phạm. Vòng vàng: nút vừa thêm. Vòng xanh: nút vừa được xoay.';
+  $('dots').className='dots'+(n>6?' many':'');
+  $('dots').innerHTML=Array.from({length:n},(_,j)=>`<i class="${j<=S.i?'on':''}"></i>`).join('');
+  $('cnt').textContent='Bước '+(S.i+1)+' / '+n;
+  $('bFirst').disabled=$('bPrev').disabled=S.i===0;
+  $('bNext').disabled=S.i===n-1;
+  document.querySelectorAll('#ptb tr').forEach(r=>r.classList.toggle('on',r.dataset.k===cs));
+}
+function stopAuto(){clearInterval(S.timer);S.timer=null;$('bAuto').textContent='Tự chạy';}
+function go(i,animate=true){
+  S.i=Math.max(0,Math.min(frames().length-1,i));
+  show(animate);
+  if(S.i===frames().length-1)stopAuto();
+}
+function toggleAuto(){
+  if(S.timer){stopAuto();return;}
+  if(S.i===frames().length-1)go(0,false);
+  $('bAuto').textContent='Dừng';
+  S.timer=setInterval(()=>go(S.i+1),2800);
+}
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.setAttribute('aria-selected',x===t));
+  S.k=t.dataset.k;S.i=0;stopAuto();show(false);
+}));
+document.querySelectorAll('.views button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.views button').forEach(x=>x.setAttribute('aria-pressed',x===b));
+  S.v=b.dataset.v;S.i=0;stopAuto();$('tabs').hidden=S.v==='long';$('opts').hidden=S.v!=='long';if(S.v==='long')renderOpts();show(false);
+}));
+$('bFirst').onclick=()=>go(0,false);
+$('bPrev').onclick=()=>go(S.i-1);
+$('bNext').onclick=()=>go(S.i+1);
+$('bAuto').onclick=toggleAuto;
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight')go(S.i+1);
+  else if(e.key==='ArrowLeft')go(S.i-1);
+});
+show(false);
+})();
+</script>
+</body>
+</html>
